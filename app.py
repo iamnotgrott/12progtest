@@ -27,8 +27,13 @@ def extract_text_from_pdf(file_path: str) -> str:
 
 def extract_text_from_txt(file_path: str) -> str:
     """Extract text from .txt or .md file"""
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return f.read()
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except UnicodeDecodeError:
+        # Try with latin-1 encoding as fallback
+        with open(file_path, 'r', encoding='latin-1') as f:
+            return f.read()
 
 def parse_task_document(file_path: str) -> str:
     """Parse task document based on file extension"""
@@ -279,10 +284,15 @@ def process_zip_file(zip_file, api_key: str, model: str, progress_bar, status_te
                 grade = ""
                 assessment = ""
 
-            # Read submission code
+            # Read submission code with fallback encoding
             submission_path = os.path.join(submissions_folder, submission_file)
-            with open(submission_path, 'r', encoding='utf-8') as f:
-                submission_code = f.read()
+            try:
+                with open(submission_path, 'r', encoding='utf-8') as f:
+                    submission_code = f.read()
+            except UnicodeDecodeError:
+                # Try with latin-1 encoding as fallback
+                with open(submission_path, 'r', encoding='latin-1') as f:
+                    submission_code = f.read()
 
             # Grade submission
             grading_result = grade_submission(submission_code, task_description, criteria, api_key, model)
