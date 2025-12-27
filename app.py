@@ -321,7 +321,14 @@ def process_zip_file(zip_file, api_key: str, model: str, progress_bar, status_te
         progress_bar.progress(1.0)
         status_text.text("Done!")
 
-        return output_folder
+        # Read all files into memory before temp directory is deleted
+        files_data = {}
+        for file in os.listdir(output_folder):
+            file_path = os.path.join(output_folder, file)
+            with open(file_path, 'rb') as f:
+                files_data[file] = f.read()
+
+        return files_data
 
 # Available models
 MODELS = {
@@ -370,23 +377,21 @@ if st.button("Grade Submissions", type="primary"):
         status_text = st.empty()
 
         try:
-            output_folder = process_zip_file(uploaded_file, api_key, selected_model, progress_bar, status_text)
+            files_data = process_zip_file(uploaded_file, api_key, selected_model, progress_bar, status_text)
 
-            if output_folder:
+            if files_data:
                 st.success("Grading completed successfully!")
 
                 # Create download buttons for all generated files
                 st.subheader("Download Results")
 
-                for file in os.listdir(output_folder):
-                    file_path = os.path.join(output_folder, file)
-                    with open(file_path, 'rb') as f:
-                        st.download_button(
-                            label=f"Download {file}",
-                            data=f,
-                            file_name=file,
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        )
+                for filename, file_data in files_data.items():
+                    st.download_button(
+                        label=f"Download {filename}",
+                        data=file_data,
+                        file_name=filename,
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    )
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
             import traceback
