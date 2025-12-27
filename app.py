@@ -364,6 +364,10 @@ MODELS = {
     }
 }
 
+# Initialize session state for storing files
+if 'graded_files' not in st.session_state:
+    st.session_state.graded_files = None
+
 # Streamlit UI
 st.title("📝 Assignment Grader")
 st.write("Upload a .zip file containing 'task' and 'submissions' folders to automatically grade student assignments.")
@@ -400,22 +404,53 @@ if st.button("Grade Submissions", type="primary"):
             files_data = process_zip_file(uploaded_file, api_key, selected_model, progress_bar, status_text)
 
             if files_data:
+                st.session_state.graded_files = files_data
                 st.success("Grading completed successfully!")
-
-                # Create download buttons for all generated files
-                st.subheader("Download Results")
-
-                for filename, file_data in files_data.items():
-                    st.download_button(
-                        label=f"Download {filename}",
-                        data=file_data,
-                        file_name=filename,
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    )
+                st.rerun()
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
             import traceback
             st.code(traceback.format_exc())
+
+# Display download buttons if files are available
+if st.session_state.graded_files:
+    st.subheader("Download Results")
+
+    # Create a ZIP file containing all results
+    import io
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for filename, file_data in st.session_state.graded_files.items():
+            zip_file.writestr(filename, file_data)
+
+    zip_buffer.seek(0)
+
+    # Download All button
+    st.download_button(
+        label="📦 Download All Files (ZIP)",
+        data=zip_buffer,
+        file_name="grading_results.zip",
+        mime="application/zip",
+        type="primary"
+    )
+
+    st.markdown("---")
+    st.markdown("**Individual Files:**")
+
+    # Individual download buttons
+    for filename, file_data in st.session_state.graded_files.items():
+        st.download_button(
+            label=f"📄 {filename}",
+            data=file_data,
+            file_name=filename,
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            key=f"download_{filename}"
+        )
+
+    # Clear results button
+    if st.button("🗑️ Clear Results", type="secondary"):
+        st.session_state.graded_files = None
+        st.rerun()
 
 st.markdown("---")
 st.markdown("### Instructions")
