@@ -257,7 +257,8 @@ def process_zip_file(zip_file, api_key: str, model: str, progress_bar, status_te
         # Process submissions
         submissions = []
         for file in os.listdir(submissions_folder):
-            if file.endswith('.py'):
+            # Skip macOS metadata files and hidden files
+            if file.endswith('.py') and not file.startswith('.') and not file.startswith('._'):
                 submissions.append(file)
 
         if not submissions:
@@ -291,8 +292,20 @@ def process_zip_file(zip_file, api_key: str, model: str, progress_bar, status_te
                     submission_code = f.read()
             except UnicodeDecodeError:
                 # Try with latin-1 encoding as fallback
-                with open(submission_path, 'r', encoding='latin-1') as f:
-                    submission_code = f.read()
+                try:
+                    with open(submission_path, 'r', encoding='latin-1') as f:
+                        submission_code = f.read()
+                except:
+                    status_text.text(f"Skipping {submission_file} - unable to read file")
+                    continue
+            except Exception as e:
+                status_text.text(f"Skipping {submission_file} - error: {str(e)}")
+                continue
+
+            # Check if file contains readable Python code (not binary)
+            if submission_code.strip() == '' or len([c for c in submission_code[:100] if ord(c) < 32 and c not in '\n\r\t']) > 10:
+                status_text.text(f"Skipping {submission_file} - appears to be binary or empty")
+                continue
 
             # Grade submission
             grading_result = grade_submission(submission_code, task_description, criteria, api_key, model)
