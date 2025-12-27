@@ -326,10 +326,8 @@ def process_zip_file(zip_file, api_key: str, model: str, progress_bar, status_te
 # Available models
 MODELS = {
     "Free Models": {
-        "Meta Llama 3.1 8B (Free)": "meta-llama/llama-3.1-8b-instruct:free",
-        "Google Gemma 2 9B (Free)": "google/gemma-2-9b-it:free",
-        "Mistral 7B (Free)": "mistralai/mistral-7b-instruct:free",
-        "Qwen 2.5 7B (Free)": "qwen/qwen-2.5-7b-instruct:free",
+        "Xiaomi Mimo V2 Flash (Free)": "xiaomi/mimo-v2-flash:free",
+        "Mistral Devstral 2512 (Free)": "mistralai/devstral-2512:free",
     },
     "Premium Models": {
         "Claude Sonnet 3.5": "anthropic/claude-3.5-sonnet",

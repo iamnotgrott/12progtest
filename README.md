@@ -50,10 +50,8 @@ assignment.zip
 ## Available Models
 
 ### Free Models (No Cost!)
-- Meta Llama 3.1 8B
-- Google Gemma 2 9B
-- Mistral 7B
-- Qwen 2.5 7B
+- Xiaomi Mimo V2 Flash
+- Mistral Devstral 2512
 
 ### Premium Models (Paid)
 - Claude Sonnet 3.5
