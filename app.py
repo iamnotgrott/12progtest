@@ -221,13 +221,19 @@ def process_zip_file(zip_file, api_key: str, model: str, progress_bar, status_te
         submissions_folder = None
 
         for root, dirs, files in os.walk(tmpdir):
-            if 'task' in [d.lower() for d in dirs]:
-                task_folder = os.path.join(root, 'task')
-            if 'submissions' in [d.lower() for d in dirs]:
-                submissions_folder = os.path.join(root, 'submissions')
+            for d in dirs:
+                if d.lower() == 'task' and not task_folder:
+                    task_folder = os.path.join(root, d)
+                if d.lower() == 'submissions' and not submissions_folder:
+                    submissions_folder = os.path.join(root, d)
 
         if not task_folder or not submissions_folder:
-            st.error("Could not find 'task' and 'submissions' folders in the zip file")
+            # Show debug info
+            all_folders = []
+            for root, dirs, files in os.walk(tmpdir):
+                for d in dirs:
+                    all_folders.append(os.path.join(root, d))
+            st.error(f"Could not find 'task' and 'submissions' folders in the zip file.\n\nFolders found: {all_folders}")
             return None
 
         status_text.text("Processing task documents...")
@@ -256,13 +262,14 @@ def process_zip_file(zip_file, api_key: str, model: str, progress_bar, status_te
 
         # Process submissions
         submissions = []
-        for file in os.listdir(submissions_folder):
+        all_files = os.listdir(submissions_folder)
+        for file in all_files:
             # Skip macOS metadata files and hidden files
             if file.endswith('.py') and not file.startswith('.') and not file.startswith('._'):
                 submissions.append(file)
 
         if not submissions:
-            st.error("No Python submissions found in the submissions folder")
+            st.error(f"No Python submissions found in the submissions folder.\n\nFiles found: {all_files}")
             return None
 
         all_results = []
