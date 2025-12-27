@@ -260,16 +260,68 @@ def process_zip_file(zip_file, api_key: str, model: str, progress_bar, status_te
 
         progress_bar.progress(0.2)
 
-        # Process submissions
+        # Process submissions - handle .py files, .zip files, and folders
         submissions = []
+        submission_paths = {}  # Maps filename to full path
         all_files = os.listdir(submissions_folder)
-        for file in all_files:
-            # Skip macOS metadata files and hidden files
-            if file.endswith('.py') and not file.startswith('.') and not file.startswith('._'):
-                submissions.append(file)
+
+        status_text.text("Extracting submissions...")
+
+        for item in all_files:
+            item_path = os.path.join(submissions_folder, item)
+
+            # Skip macOS metadata files
+            if item.startswith('.') or item.startswith('._'):
+                continue
+
+            # Handle .py files directly in submissions folder
+            if item.endswith('.py') and os.path.isfile(item_path):
+                submissions.append(item)
+                submission_paths[item] = item_path
+
+            # Handle .zip files in submissions folder
+            elif item.endswith('.zip') and os.path.isfile(item_path):
+                # Extract the zip file
+                extract_dir = os.path.join(submissions_folder, f"_extracted_{item[:-4]}")
+                os.makedirs(extract_dir, exist_ok=True)
+
+                try:
+                    with zipfile.ZipFile(item_path, 'r') as zip_ref:
+                        zip_ref.extractall(extract_dir)
+
+                    # Find .py files in the extracted content
+                    for root, dirs, files in os.walk(extract_dir):
+                        for file in files:
+                            if file.endswith('.py') and not file.startswith('.') and not file.startswith('._'):
+                                # Use original naming from zip filename
+                                py_file_path = os.path.join(root, file)
+                                # Try to extract student info from zip name
+                                zip_base = item[:-4]  # Remove .zip
+                                submissions.append(f"{zip_base}.py")
+                                submission_paths[f"{zip_base}.py"] = py_file_path
+                                break  # Take first .py file found
+                        if f"{zip_base}.py" in submissions:
+                            break
+                except Exception as e:
+                    status_text.text(f"Warning: Could not extract {item}: {str(e)}")
+                    continue
+
+            # Handle folders in submissions folder
+            elif os.path.isdir(item_path):
+                # Look for .py files in the folder
+                for root, dirs, files in os.walk(item_path):
+                    for file in files:
+                        if file.endswith('.py') and not file.startswith('.') and not file.startswith('._'):
+                            py_file_path = os.path.join(root, file)
+                            # Use folder name for student identification
+                            submissions.append(f"{item}.py")
+                            submission_paths[f"{item}.py"] = py_file_path
+                            break  # Take first .py file found
+                    if f"{item}.py" in submissions:
+                        break
 
         if not submissions:
-            st.error(f"No Python submissions found in the submissions folder.\n\nFiles found: {all_files}")
+            st.error(f"No Python submissions found in the submissions folder.\n\nFiles/folders found: {all_files}")
             return None
 
         all_results = []
@@ -293,7 +345,7 @@ def process_zip_file(zip_file, api_key: str, model: str, progress_bar, status_te
                 assessment = ""
 
             # Read submission code with fallback encoding
-            submission_path = os.path.join(submissions_folder, submission_file)
+            submission_path = submission_paths[submission_file]
             try:
                 with open(submission_path, 'r', encoding='utf-8') as f:
                     submission_code = f.read()
